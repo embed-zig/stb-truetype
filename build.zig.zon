@@ -1,0 +1,19 @@
+.{
+    .name = .stb_truetype,
+    .version = "0.0.0",
+    .fingerprint = 0xea495ce21fc6c49c,
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "stb_truetype.zig",
+        "include/",
+        "src/",
+        "test_runner/",
+    },
+    .dependencies = .{
+        .embed_zig = .{
+            .url = "https://github.com/embed-zig/embed-zig/archive/a97a6d772bb0e0658ef03229b42849b12a08079d.tar.gz",
+            .hash = "embed_zig-0.0.0-prAy_FSIVwDjm37LKghqLPVuM8PpMqGavLxAC1C8pfT8",
+        },
+    },
+}
