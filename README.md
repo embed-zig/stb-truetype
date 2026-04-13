@@ -42,8 +42,9 @@ src/binding.c
 src/binding.zig
 src/types.zig
 src/Font.zig
-test_runner/stb_truetype.zig
-test_runner/font.ttf
+test_runner/unit.zig
+test_runner/integration.zig
+test_runner/unit/test_utils/font.ttf
 ```
 
 `font.ttf` is a tiny checked-in test fixture used by the package test runner.

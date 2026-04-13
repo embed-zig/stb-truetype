@@ -14,13 +14,44 @@ pub const stbtt_GetCodepointBitmapBox = c.stbtt_GetCodepointBitmapBox;
 pub const stbtt_MakeCodepointBitmap = c.stbtt_MakeCodepointBitmap;
 pub const stbtt_FindGlyphIndex = c.stbtt_FindGlyphIndex;
 
-test "stb_truetype/unit_tests/binding/exports_core_stb_symbols" {
-    const std = @import("std");
-    const testing = std.testing;
+pub fn TestRunner(comptime lib: type) @import("testing").TestRunner {
+    const embed = @import("embed");
+    const testing_api = @import("testing");
 
-    try testing.expect(@sizeOf(FontInfo) > 0);
+    const Runner = struct {
+        const testing = lib.testing;
 
-    _ = stbtt_InitFont;
-    _ = stbtt_ScaleForPixelHeight;
-    _ = stbtt_GetCodepointBitmapBox;
+        pub fn init(self: *@This(), allocator: embed.mem.Allocator) !void {
+            _ = self;
+            _ = allocator;
+        }
+
+        pub fn run(self: *@This(), t: *testing_api.T, allocator: embed.mem.Allocator) bool {
+            _ = self;
+            _ = allocator;
+
+            runExportsCoreStbSymbols() catch |err| {
+                t.logFatal(@errorName(err));
+                return false;
+            };
+            return true;
+        }
+
+        pub fn deinit(self: *@This(), allocator: embed.mem.Allocator) void {
+            _ = allocator;
+            lib.testing.allocator.destroy(self);
+        }
+
+        fn runExportsCoreStbSymbols() !void {
+            try testing.expect(@sizeOf(FontInfo) > 0);
+
+            _ = stbtt_InitFont;
+            _ = stbtt_ScaleForPixelHeight;
+            _ = stbtt_GetCodepointBitmapBox;
+        }
+    };
+
+    const runner = lib.testing.allocator.create(Runner) catch @panic("OOM");
+    runner.* = .{};
+    return testing_api.TestRunner.make(Runner).new(runner);
 }

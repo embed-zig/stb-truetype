@@ -14,7 +14,8 @@ pub const HMetrics = types_mod.HMetrics;
 pub const BitmapBox = types_mod.BitmapBox;
 
 pub const test_runner = struct {
-    pub const stb_truetype = @import("test_runner/stb_truetype.zig");
+    pub const unit = @import("test_runner/unit.zig");
+    pub const integration = @import("test_runner/integration.zig");
 };
 
 test "stb_truetype/unit_tests" {
@@ -30,7 +31,7 @@ test "stb_truetype/integration_tests/embed" {
     var t = testing.T.new(lib, .stb_truetype_integration_embed);
     defer t.deinit();
 
-    t.run("stb_truetype", test_runner.stb_truetype.make(lib));
+    t.run("stb_truetype", test_runner.integration.make(lib));
     if (!t.wait()) return error.TestFailed;
 }
 
@@ -41,6 +42,6 @@ test "stb_truetype/integration_tests/std" {
     var t = testing.T.new(lib, .stb_truetype_integration_std);
     defer t.deinit();
 
-    t.run("stb_truetype", test_runner.stb_truetype.make(lib));
+    t.run("stb_truetype", test_runner.integration.make(lib));
     if (!t.wait()) return error.TestFailed;
 }

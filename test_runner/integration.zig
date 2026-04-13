@@ -1,8 +1,9 @@
 const embed = @import("embed");
 const testing_api = @import("testing");
-const FontMod = @import("../src/Font.zig");
+const font_mod = @import("../src/Font.zig");
 const types_mod = @import("../src/types.zig");
-const font_bytes = @embedFile("font.ttf");
+
+const font_bytes = @embedFile("unit/test_utils/font.ttf");
 const embedded_codepoint: u21 = 0x4E2D;
 const missing_codepoint: u21 = 0x10FFFF;
 
@@ -36,7 +37,7 @@ pub fn make(comptime lib: type) testing_api.TestRunner {
 
 fn runImpl(comptime lib: type) !void {
     const stb = struct {
-        pub const Font = FontMod;
+        pub const Font = font_mod;
         pub const VMetrics = types_mod.VMetrics;
         pub const HMetrics = types_mod.HMetrics;
         pub const BitmapBox = types_mod.BitmapBox;

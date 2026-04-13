@@ -176,112 +176,148 @@ fn maxCIntValue() comptime_int {
     return (@as(comptime_int, 1) << (@typeInfo(c_int).int.bits - 1)) - 1;
 }
 
-test "stb_truetype/unit_tests/Font/rejects_invalid_inputs" {
-    const std = @import("std");
-    const testing = std.testing;
+pub fn TestRunner(comptime lib: type, comptime font_bytes: []const u8) @import("testing").TestRunner {
+    const embed = @import("embed");
+    const testing_api = @import("testing");
 
-    const empty = [_]u8{};
-    const invalid = [_]u8{ 0x00, 0x01, 0x02, 0x03 };
-    const ascii_noise = [_]u8{ 'n', 'o', 't', '-', 'a', '-', 'f', 'o', 'n', 't' };
+    const Runner = struct {
+        const testing = lib.testing;
+        const embedded_codepoint: u21 = 0x4E2D;
 
-    try testing.expectError(InitError.InvalidFont, Self.init(empty[0..]));
-    try testing.expectError(InitError.InvalidFont, Self.init(invalid[0..]));
-    try testing.expectError(InitError.InvalidFont, Self.init(ascii_noise[0..]));
-    try testing.expectError(InitError.InvalidFont, Self.initOffset(invalid[0..], 2));
-    try testing.expectError(InitError.InvalidFont, Self.initOffset(ascii_noise[0..], ascii_noise.len));
-}
+        pub fn init(self: *@This(), allocator: embed.mem.Allocator) !void {
+            _ = self;
+            _ = allocator;
+        }
 
-test "stb_truetype/unit_tests/Font/initOffset_accepts_valid_font_at_zero_offset" {
-    const std = @import("std");
-    const testing = std.testing;
-    const font_bytes = @embedFile("../test_runner/font.ttf");
+        pub fn run(self: *@This(), t: *testing_api.T, allocator: embed.mem.Allocator) bool {
+            _ = self;
+            _ = allocator;
 
-    const font = try Self.initOffset(font_bytes[0..], 0);
+            runRejectsInvalidInputs() catch |err| {
+                t.logFatal(@errorName(err));
+                return false;
+            };
+            runInitOffsetAcceptsValidFontAtZeroOffset() catch |err| {
+                t.logFatal(@errorName(err));
+                return false;
+            };
+            runInitOffsetRejectsOffsetsTooLargeForCInt() catch |err| {
+                t.logFatal(@errorName(err));
+                return false;
+            };
+            runRenderCodepointBitmapValidatesLayout() catch |err| {
+                t.logFatal(@errorName(err));
+                return false;
+            };
+            runRenderCodepointBitmapTreatsZeroSizedRendersAsNoop() catch |err| {
+                t.logFatal(@errorName(err));
+                return false;
+            };
+            runRenderCodepointBitmapReportsSizeLimitErrors() catch |err| {
+                t.logFatal(@errorName(err));
+                return false;
+            };
+            return true;
+        }
 
-    try testing.expect(font.glyphIndex(0x4E2D) > 0);
-}
+        pub fn deinit(self: *@This(), allocator: embed.mem.Allocator) void {
+            _ = allocator;
+            lib.testing.allocator.destroy(self);
+        }
 
-test "stb_truetype/unit_tests/Font/initOffset_rejects_offsets_too_large_for_c_int" {
-    const std = @import("std");
-    const testing = std.testing;
+        fn runRejectsInvalidInputs() !void {
+            const empty = [_]u8{};
+            const invalid = [_]u8{ 0x00, 0x01, 0x02, 0x03 };
+            const ascii_noise = [_]u8{ 'n', 'o', 't', '-', 'a', '-', 'f', 'o', 'n', 't' };
 
-    try testing.expectError(
-        InitError.OffsetTooLarge,
-        intCastFontOffset(@as(usize, maxCIntValue()) + 1),
-    );
-}
+            try testing.expectError(InitError.InvalidFont, Self.init(empty[0..]));
+            try testing.expectError(InitError.InvalidFont, Self.init(invalid[0..]));
+            try testing.expectError(InitError.InvalidFont, Self.init(ascii_noise[0..]));
+            try testing.expectError(InitError.InvalidFont, Self.initOffset(invalid[0..], 2));
+            try testing.expectError(InitError.InvalidFont, Self.initOffset(ascii_noise[0..], ascii_noise.len));
+        }
 
-test "stb_truetype/unit_tests/Font/renderCodepointBitmap_validates_layout" {
-    const std = @import("std");
-    const testing = std.testing;
-    const font_bytes = @embedFile("../test_runner/font.ttf");
+        fn runInitOffsetAcceptsValidFontAtZeroOffset() !void {
+            const font = try Self.initOffset(font_bytes, 0);
 
-    const font = try Self.init(font_bytes[0..]);
-    const scale = font.scaleForPixelHeight(24.0);
-    const glyph_box = font.bitmapBox(0x4E2D, scale, scale);
-    const width: usize = @intCast(glyph_box.width());
-    const height: usize = @intCast(glyph_box.height());
+            try testing.expect(font.glyphIndex(embedded_codepoint) > 0);
+        }
 
-    try testing.expect(width > 0);
-    try testing.expect(height > 0);
+        fn runInitOffsetRejectsOffsetsTooLargeForCInt() !void {
+            try testing.expectError(
+                InitError.OffsetTooLarge,
+                intCastFontOffset(@as(usize, maxCIntValue()) + 1),
+            );
+        }
 
-    var invalid_stride_bitmap = [_]u8{0} ** 4;
-    try testing.expectError(
-        RenderCodepointBitmapError.InvalidStride,
-        font.renderCodepointBitmap(
-            invalid_stride_bitmap[0..],
-            width,
-            height,
-            width - 1,
-            scale,
-            scale,
-            0x4E2D,
-        ),
-    );
+        fn runRenderCodepointBitmapValidatesLayout() !void {
+            const font = try Self.init(font_bytes);
+            const scale = font.scaleForPixelHeight(24.0);
+            const glyph_box = font.bitmapBox(embedded_codepoint, scale, scale);
+            const width: usize = @intCast(glyph_box.width());
+            const height: usize = @intCast(glyph_box.height());
 
-    const stride = width + 3;
-    const required_len = try requiredBitmapLen(width, height, stride);
-    try testing.expect(required_len > 0);
+            try testing.expect(width > 0);
+            try testing.expect(height > 0);
 
-    const too_small_bitmap = try testing.allocator.alloc(u8, required_len - 1);
-    defer testing.allocator.free(too_small_bitmap);
+            var invalid_stride_bitmap = [_]u8{0} ** 4;
+            try testing.expectError(
+                RenderCodepointBitmapError.InvalidStride,
+                font.renderCodepointBitmap(
+                    invalid_stride_bitmap[0..],
+                    width,
+                    height,
+                    width - 1,
+                    scale,
+                    scale,
+                    embedded_codepoint,
+                ),
+            );
 
-    try testing.expectError(
-        RenderCodepointBitmapError.BufferTooSmall,
-        font.renderCodepointBitmap(
-            too_small_bitmap,
-            width,
-            height,
-            stride,
-            scale,
-            scale,
-            0x4E2D,
-        ),
-    );
-}
+            const stride = width + 3;
+            const required_len = try requiredBitmapLen(width, height, stride);
+            try testing.expect(required_len > 0);
 
-test "stb_truetype/unit_tests/Font/renderCodepointBitmap_treats_zero_sized_renders_as_noop" {
-    const font_bytes = @embedFile("../test_runner/font.ttf");
+            const too_small_bitmap = try testing.allocator.alloc(u8, required_len - 1);
+            defer testing.allocator.free(too_small_bitmap);
 
-    const font = try Self.init(font_bytes[0..]);
-    const empty = [_]u8{};
+            try testing.expectError(
+                RenderCodepointBitmapError.BufferTooSmall,
+                font.renderCodepointBitmap(
+                    too_small_bitmap,
+                    width,
+                    height,
+                    stride,
+                    scale,
+                    scale,
+                    embedded_codepoint,
+                ),
+            );
+        }
 
-    try font.renderCodepointBitmap(empty[0..], 0, 1, 0, 1.0, 1.0, 0x4E2D);
-    try font.renderCodepointBitmap(empty[0..], 1, 0, 1, 1.0, 1.0, 0x4E2D);
-}
+        fn runRenderCodepointBitmapTreatsZeroSizedRendersAsNoop() !void {
+            const font = try Self.init(font_bytes);
+            const empty = [_]u8{};
 
-test "stb_truetype/unit_tests/Font/renderCodepointBitmap_reports_size_limit_errors" {
-    const std = @import("std");
-    const testing = std.testing;
+            try font.renderCodepointBitmap(empty[0..], 0, 1, 0, 1.0, 1.0, embedded_codepoint);
+            try font.renderCodepointBitmap(empty[0..], 1, 0, 1, 1.0, 1.0, embedded_codepoint);
+        }
 
-    const max_usize = std.math.maxInt(usize);
+        fn runRenderCodepointBitmapReportsSizeLimitErrors() !void {
+            const max_usize = lib.math.maxInt(usize);
 
-    try testing.expectError(
-        RenderCodepointBitmapError.DimensionTooLarge,
-        intCastBitmapDimension(@as(usize, maxCIntValue()) + 1),
-    );
-    try testing.expectError(
-        RenderCodepointBitmapError.BitmapTooLarge,
-        requiredBitmapLen(1, 2, max_usize),
-    );
+            try testing.expectError(
+                RenderCodepointBitmapError.DimensionTooLarge,
+                intCastBitmapDimension(@as(usize, maxCIntValue()) + 1),
+            );
+            try testing.expectError(
+                RenderCodepointBitmapError.BitmapTooLarge,
+                requiredBitmapLen(1, 2, max_usize),
+            );
+        }
+    };
+
+    const runner = lib.testing.allocator.create(Runner) catch @panic("OOM");
+    runner.* = .{};
+    return testing_api.TestRunner.make(Runner).new(runner);
 }
