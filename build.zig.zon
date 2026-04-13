@@ -12,8 +12,8 @@
     },
     .dependencies = .{
         .embed_zig = .{
-            .url = "https://github.com/embed-zig/embed-zig/archive/a97a6d772bb0e0658ef03229b42849b12a08079d.tar.gz",
-            .hash = "embed_zig-0.0.0-prAy_FSIVwDjm37LKghqLPVuM8PpMqGavLxAC1C8pfT8",
+            .url = "https://codeload.github.com/embed-zig/embed-zig/tar.gz/refs/tags/v1.0.0",
+            .hash = "embed_zig-0.0.0-prAy_J-_SwCxEK9g4d7_C1QcizljJJ5wQQGx_Pg6bl9_",
         },
     },
 }
