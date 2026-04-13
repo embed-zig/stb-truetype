@@ -1,5 +1,7 @@
 # stb_truetype
 
+[![CI](https://github.com/embed-zig/stb-truetype/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/embed-zig/stb-truetype/actions/workflows/ci.yml)
+
 `stb_truetype` wraps `stb_truetype.h` for font parsing and bitmap-related
 font queries.
 

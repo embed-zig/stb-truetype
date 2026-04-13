@@ -12,7 +12,7 @@
     },
     .dependencies = .{
         .embed_zig = .{
-            .url = "https://codeload.github.com/embed-zig/embed-zig/tar.gz/refs/tags/v1.0.0",
+            .url = "git+https://github.com/embed-zig/embed-zig#v1.0.0",
             .hash = "embed_zig-0.0.0-prAy_J-_SwCxEK9g4d7_C1QcizljJJ5wQQGx_Pg6bl9_",
         },
     },
